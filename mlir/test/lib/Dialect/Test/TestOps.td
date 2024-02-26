@@ -30,6 +30,7 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/LoopLikeInterface.td"
 include "mlir/Interfaces/MemorySlotInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Dialect/Bufferization/IR/BufferizableOpInterface.td"
 
 
 // Include the attribute definitions.
@@ -2204,7 +2205,7 @@ def ForwardBufferOp : TEST_Op<"forward_buffer", [Pure]> {
 def ReifyBoundOp : TEST_Op<"reify_bound", [Pure]> {
   let description = [{
     Reify a bound for the given index-typed value or dimension size of a shaped
-    value. "LB", "EQ" and "UB" bounds are supported. If `scalable` is set, 
+    value. "LB", "EQ" and "UB" bounds are supported. If `scalable` is set,
     `vscale_min` and `vscale_max` must be provided, which allows computing
     a bound in terms of "vector.vscale" for a given range of vscale.
   }];
@@ -3198,6 +3199,35 @@ def TestMultiSlotAlloca : TEST_Op<"multi_slot_alloca",
      DeclareOpInterfaceMethods<DestructurableAllocationOpInterface>]> {
   let results = (outs Variadic<MemRefOf<[I32]>>:$results);
   let assemblyFormat = "attr-dict `:` functional-type(operands, results)";
+}
+
+def TestDummyTensorOp : TEST_Op<"dummy_tensor_op", [BufferizableOpInterface]> {
+  let arguments = (ins
+    Arg<TestTensorType>:$input
+  );
+  let results = (outs
+    Arg<TestTensorType>:$output
+  );
+  let extraClassDeclaration = [{
+    // BufferizableOpInterface
+    bool bufferizesToMemoryRead(mlir::OpOperand&, const mlir::bufferization::AnalysisState&);
+    bool bufferizesToMemoryWrite(mlir::OpOperand&, const mlir::bufferization::AnalysisState&);
+    // TODO: Rename getAliasingOpResults to something in the style of bufferization?
+    mlir::bufferization::AliasingValueList getAliasingOpResults(
+      mlir::OpOperand&,
+      const mlir::bufferization::AnalysisState&);
+    mlir::LogicalResult bufferize(mlir::RewriterBase& rewriter,
+                                  const mlir::bufferization::BufferizationOptions& options);
+  }];
+}
+
+def TestDummyMemrefOp : TEST_Op<"dummy_memref_op", []> {
+  let arguments = (ins
+    Arg<TestMemrefType>:$input
+  );
+  let results = (outs
+    Arg<TestMemrefType>:$output
+  );
 }
 
 #endif // TEST_OPS
