@@ -10,6 +10,7 @@
 #define MLIR_IR_BUILTINTYPEINTERFACES_H
 
 #include "mlir/IR/Types.h"
+#include "mlir/IR/Attributes.h"
 
 #include "mlir/IR/BuiltinTypeInterfaces.h.inc"
 
