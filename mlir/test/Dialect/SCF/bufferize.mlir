@@ -99,3 +99,35 @@ func.func @bufferize_while(%arg0: i64, %arg1: i64, %arg2: tensor<f32>) -> (i64, 
   }
   return %0#1, %0#2 : i64, tensor<f32>
 }
+
+// CHECK-LABEL:   func @bufferize_index_switch(
+// CHECK-SAME: %[[PRED:.*]]: index, %[[A:.*]]: tensor<5xf32>, %[[B:.*]]: tensor<5xf32>, %[[C:.*]]: tensor<5xf32>) -> tensor<5xf32> {
+// CHECK-DAG: %[[A_MEMREF:.*]] = bufferization.to_memref %[[A]] : memref<5xf32>
+// CHECK-DAG: %[[B_MEMREF:.*]] = bufferization.to_memref %[[B]] : memref<5xf32>
+// CHECK-DAG: %[[C_MEMREF:.*]] = bufferization.to_memref %[[C]] : memref<5xf32>
+
+// CHECK: %[[RES_MEMREF:.*]] = scf.index_switch %[[PRED]] -> memref<5xf32>
+// CHECK: case 1 {
+// CHECK:   scf.yield %[[A_MEMREF]] : memref<5xf32>
+// CHECK: case 2 {
+// CHECK:   scf.yield %[[B_MEMREF]] : memref<5xf32>
+// CHECK: default {
+// CHECK:   scf.yield %[[C_MEMREF]] : memref<5xf32>
+
+// CHECK: %[[RES_TENSOR:.*]] = bufferization.to_tensor %[[RES_MEMREF]] : memref<5xf32>
+
+// CHECK: return %[[RES_TENSOR:.*]] : tensor<5xf32>
+func.func @bufferize_index_switch(%pred: index, %a: tensor<5xf32>, %b: tensor<5xf32>, %c: tensor<5xf32>) -> tensor<5xf32> {
+  %0 = scf.index_switch %pred -> tensor<5xf32>
+  case 1 {
+    scf.yield %a : tensor<5xf32>
+  }
+  case 2 {
+    scf.yield %b : tensor<5xf32>
+  }
+  default {
+    scf.yield %c : tensor<5xf32>
+  }
+
+  return %0 : tensor<5xf32>
+}
